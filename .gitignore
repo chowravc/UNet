@@ -3,3 +3,6 @@
 *.zip
 /testImages/
 /testImages/*
+/runs/
+/runs/train/
+/runs/train/*

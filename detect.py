@@ -1,4 +1,5 @@
 ### Import useful packages
+import os
 import torch
 from torch.utils.data import Dataset, DataLoader
 import torch.nn as nn
@@ -68,10 +69,10 @@ def grey2rgb_image_loader(image_name, loader, device):
 	image = torch.stack([image[0], image[0], image[0]])
 
 	## Add extra dimension to the tensor
-	image = image.unsqueeze(0)  #this is for VGG, may not be needed for ResNet
+	image = image.unsqueeze(0)  # this is for VGG, may not be needed for ResNet
 
 	## Mount to device and return tensor
-	return image.to(device)  #assumes that you're using GPU
+	return image.to(device)  # assumes that you're using GPU
 
 
 
@@ -79,7 +80,7 @@ def grey2rgb_image_loader(image_name, loader, device):
 if __name__ == '__main__':
 
 	## Path to trained model
-	PATH = './unet.pth'
+	PATH = 'runs/train/exp1/weights/unet.pth'
 
 	## Select device, CPU/GPU
 	device = (torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu'))

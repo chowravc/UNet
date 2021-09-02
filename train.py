@@ -1,4 +1,5 @@
 ### Import useful packages
+import os
 import torch
 from torch.utils.data import Dataset, DataLoader
 import torch.nn as nn
@@ -36,7 +37,7 @@ if __name__ == '__main__':
 	dataPath = 'data/defects/'
 
 	## Instantiate the train and test datasets
-	train_dataset, test_dataset = TrainDataset(), TestDataset()
+	train_dataset, test_dataset = TrainDataset(dataPath), TestDataset(dataPath)
 
 	## Define the train dataset loader. This will be shuffled.
 	train_loader = torch.utils.data.DataLoader(train_dataset, batch_size = bs, shuffle = True)
@@ -88,7 +89,28 @@ if __name__ == '__main__':
 	print('done.')
 
 	#### PART 3: Start training
-	print('\nPart 3: Start training.')
+	print('\nPART 3: Start training.')
+
+	## Check if runs directory exists
+	if len(glob.glob('runs/')) == 0:
+		os.mkdir('runs/')
+		os.mkdir('runs/train/')
+
+	## Check if train directory exists
+	elif len(glob.glob('runs/train/')) == 0:
+		os.mkdir('runs/train/')
+
+	## Number of train experiments
+	expNum = len(glob.glob('runs/train/*'))
+
+	## Current train experiment number
+	expNum = expNum + 1
+
+	## Experiment directory path
+	expPath = 'runs/train/exp' + str(expNum) + '/'
+
+	## Create experiment directory
+	os.mkdir(expPath)
 
 	## Choose training device; GPU/CPU
 	device = (torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu'))
@@ -106,12 +128,18 @@ if __name__ == '__main__':
 	## Instantiate optimizer
 	optimizer = optim.SGD(model.parameters(), lr=lr, weight_decay = .0005, momentum = .9)
 
+	## Create checkpoints directory
+	os.mkdir(expPath + 'checkpoints/')
+
+	## Create weights directory
+	os.mkdir(expPath + 'weights/')
+
 	## Start training loop
-	training_loop(3, optimizer, model, loss_fn, train_loader, device)
+	training_loop(10, optimizer, model, loss_fn, train_loader, device, expPath)
 	print('\nFinished training. Saving final model.')
 
 	## Path to final trained model
-	PATH = './unet.pth'
+	PATH = expPath + 'weights/unet.pth'
 
 	## Save the final trained model
 	torch.save(uModel.state_dict(), PATH)

@@ -1,4 +1,5 @@
 ### Import useful packages
+import os
 import torch
 from torch.utils.data import Dataset, DataLoader
 import torch.nn as nn
@@ -21,7 +22,10 @@ print('training_loop.py: imported packages.')
 
 
 ### Function defining training loop
-def training_loop(n_epochs, optimizer, model, loss_fn, train_loader, device):
+def training_loop(n_epochs, optimizer, model, loss_fn, train_loader, device, expPath):
+
+	## Open results txt file to store training progress
+	results = open(expPath + 'results.txt', 'w')
 
 	## Loop through number of epochs
 	for epoch in range(1, n_epochs + 1):  # <2>
@@ -56,10 +60,25 @@ def training_loop(n_epochs, optimizer, model, loss_fn, train_loader, device):
 			# Add batch loss to total training loss
 			loss_train += loss.item()  # <9>
 
-		# Display progress every 1 epochs
+		# String to store progress
+		progress = '{} Epoch {}, Training loss {}, std {} , teststd {} '.format(
+				datetime.datetime.now(), epoch, loss_train/len(train_loader), outputs.std(), labels.float().std())
+
+		# Write progress to results file
+		results.write(progress + '\n')
+
+		# Display progress every 1 epochs and save checkpoint
 		if epoch == 1 or epoch % 1 == 0:
-			print('{} Epoch {}, Training loss {}, std {} , teststd {} '.format(
-				datetime.datetime.now(), epoch, loss_train/len(train_loader), outputs.std(), labels.float().std()))
+			print(progress)
+
+			## Path to model checkpoint
+			cpPath = expPath + 'checkpoints/epoch_' + str(epoch).zfill(len(str(n_epochs))) + '.pth'
+
+			## Save the final trained model
+			torch.save(model.state_dict(), cpPath)
+
+	## Close results file
+	results.close()
 
 
 

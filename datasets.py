@@ -1,4 +1,5 @@
 ### Import useful packages
+import os
 import torch
 from torch.utils.data import Dataset, DataLoader
 import torch.nn as nn
@@ -70,7 +71,7 @@ class TrainDataset(Dataset):
 class TestDataset(Dataset):
 	
 	## Constructor
-	def __init__(self):
+	def __init__(self, dataPath):
 
 		# Get relevant frames
 		self.frames = pims.ImageSequence(dataPath + '/test_set/*.tiff')
