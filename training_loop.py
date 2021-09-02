@@ -56,9 +56,9 @@ def training_loop(n_epochs, optimizer, model, loss_fn, train_loader, device):
 			# Add batch loss to total training loss
 			loss_train += loss.item()  # <9>
 
-		# Display progress every 10 epochs
-		if epoch == 1 or epoch % 10 == 0:
-			print('{} Epoch {}, Training loss {}, std{} , teststd {} '.format(
+		# Display progress every 1 epochs
+		if epoch == 1 or epoch % 1 == 0:
+			print('{} Epoch {}, Training loss {}, std {} , teststd {} '.format(
 				datetime.datetime.now(), epoch, loss_train/len(train_loader), outputs.std(), labels.float().std()))
 
 
@@ -79,7 +79,7 @@ if __name__ == '__main__':
 	lr = 1e-1
 
 	## Instantiate model
-	uModel = UNet()
+	uModel = UNet_small()
 
 	## Mount model to device
 	model = uModel.to(device)

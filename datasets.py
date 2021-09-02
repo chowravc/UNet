@@ -20,10 +20,10 @@ print('datasets.py: imported packages.')
 class TrainDataset(Dataset):
 	
 	## Constructor
-	def __init__(self):
+	def __init__(self, dataPath):
 
 		# Get relevant frames
-		self.frames = pims.ImageSequence('./data/train_set/*.tiff')
+		self.frames = pims.ImageSequence(dataPath + '/train_set/*.tiff')
 
 		# Get filepaths from frames
 		self.names = pd.Series(self.frames._filepaths)
@@ -73,7 +73,7 @@ class TestDataset(Dataset):
 	def __init__(self):
 
 		# Get relevant frames
-		self.frames = pims.ImageSequence('./data/test_set/*.tiff')
+		self.frames = pims.ImageSequence(dataPath + '/test_set/*.tiff')
 
 		# Get filepaths from frames
 		self.names = pd.Series(self.frames._filepaths)
