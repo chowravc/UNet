@@ -14,6 +14,7 @@ from torch.autograd import Variable
 import skimage as skm
 import glob
 import datetime
+import shutil
 
 ### Import useful scripts
 from model import *
@@ -26,6 +27,9 @@ def training_loop(n_epochs, optimizer, model, loss_fn, train_loader, device, exp
 
 	## Open results txt file to store training progress
 	results = open(expPath + 'results.txt', 'w')
+
+	## Store list of losses
+	losses = []
 
 	## Loop through number of epochs
 	for epoch in range(1, n_epochs + 1):  # <2>
@@ -64,18 +68,38 @@ def training_loop(n_epochs, optimizer, model, loss_fn, train_loader, device, exp
 		progress = '{} Epoch {}, Training loss {}, std {} , teststd {} '.format(
 				datetime.datetime.now(), epoch, loss_train/len(train_loader), outputs.std(), labels.float().std())
 
+		# Add loss to list
+		losses.append(loss_train/len(train_loader))
+
 		# Write progress to results file
 		results.write(progress + '\n')
 
-		# Display progress every 1 epochs and save checkpoint
-		if epoch == 1 or epoch % 1 == 0:
-			print(progress)
+		# Display progress every epoch and save checkpoin
+		print(progress)
 
-			## Path to model checkpoint
-			cpPath = expPath + 'checkpoints/epoch_' + str(epoch).zfill(len(str(n_epochs))) + '.pth'
+		## Path to model checkpoint
+		cpPath = expPath + 'checkpoints/epoch_' + str(epoch).zfill(len(str(n_epochs))) + '.pth'
 
-			## Save the final trained model
-			torch.save(model.state_dict(), cpPath)
+		## Save the final trained model
+		torch.save(model.state_dict(), cpPath)
+
+	## Convert losses list to numpy array
+	losses = np.asarray(losses)
+
+	## Lowest loss
+	lossLow = np.amin(losses)
+
+	## Epoch number with lowest loss
+	minEpoch = np.where(losses == lossLow)[0][0] + 1
+
+	## Display lowest loss
+	print('\nLowest loss: ' + str(lossLow) + ', Epoch ' + str(minEpoch))
+
+	## Path to best checkpoint
+	cpPath = expPath + 'checkpoints/epoch_' + str(minEpoch).zfill(len(str(n_epochs))) + '.pth'
+
+	## Copy over best checkpoint
+	shutil.copyfile(cpPath, expPath + 'weights/best.pth')
 
 	## Close results file
 	results.close()

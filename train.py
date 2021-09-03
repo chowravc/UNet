@@ -135,11 +135,11 @@ if __name__ == '__main__':
 	os.mkdir(expPath + 'weights/')
 
 	## Start training loop
-	training_loop(10, optimizer, model, loss_fn, train_loader, device, expPath)
+	training_loop(20, optimizer, model, loss_fn, train_loader, device, expPath)
 	print('\nFinished training. Saving final model.')
 
-	## Path to final trained model
-	PATH = expPath + 'weights/unet.pth'
+	## Path to final trained model last
+	PATH = expPath + 'weights/last.pth'
 
 	## Save the final trained model
 	torch.save(uModel.state_dict(), PATH)
