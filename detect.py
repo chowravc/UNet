@@ -1,4 +1,5 @@
 ### Import useful packages
+import argparse
 import os
 import torch
 from torch.utils.data import Dataset, DataLoader
@@ -14,6 +15,7 @@ from torch.autograd import Variable
 import skimage as skm
 import glob
 from PIL import Image
+from datetime import datetime
 
 ### Import useful scripts
 from datasets import *
@@ -76,56 +78,175 @@ def grey2rgb_image_loader(image_name, loader, device):
 
 
 
-### Main functioning of script
-if __name__ == '__main__':
+### Run UNet model on a folder containing images
+def detect_folder(weightPath, imDir, model):
 
-	## Path to trained model
-	PATH = 'runs/train/exp1/weights/unet.pth'
+	## Check if runs directory exists
+	if len(glob.glob('runs/')) == 0:
+		os.mkdir('runs/')
+		os.mkdir('runs/detect/')
+
+	## Check if detect directory exists
+	elif len(glob.glob('runs/detect/')) == 0:
+		os.mkdir('runs/detect/')
+
+	## Number of detect experiments
+	expNum = len(glob.glob('runs/detect/*'))
+
+	## Current detect experiment number
+	expNum = expNum + 1
+
+	## Experiment directory path
+	expPath = 'runs/detect/exp' + str(expNum) + '/'
+
+	## Create experiment directory
+	os.mkdir(expPath)
+
+	## Create labels directory
+	os.mkdir(expPath + 'labels/')
 
 	## Select device, CPU/GPU
 	device = (torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu'))
+	print(f"Detecting on device {device}.")
 
-	## Instantiate UNet model
-	uModel = UNet_small()
-
-	## Mount UNet to device
-	uModel.to(device)
+	## Mount model to device
+	model.to(device)
 
 	## Load trained weights to model
-	uModel.load_state_dict(torch.load(PATH))
+	model.load_state_dict(torch.load(weightPath))
 
-	print('\nLoaded trained UNet.')
+	print('\nLoaded trained UNet.\n')
 
 	## Choose image input size
-	imsize = 2*(84+2)
+	imSize = model.inputDims
 
 	## Create pytorch image loader, will rescale image and crop out the center
-	loader = transforms.Compose([transforms.Scale(imsize), transforms.CenterCrop((imsize,imsize)), transforms.ToTensor()])
+	loader = transforms.Compose([transforms.Scale(imSize), transforms.CenterCrop((imSize,imSize)), transforms.ToTensor()])
 
-	## Load image as tensor
-	testImage = image_loader("./testImages/r3_2000.tif", loader, device)
-	#testImage = grey2rgb_image_loader("./testImages/r3_1000.tif")
-	#testOutput = uModel(testImage)[0][0].to("cpu").detach().numpy()
+	## Read image paths
+	imPaths = glob.glob(imDir + '*')
 
-	## Run model on image and get output as numpy array
-	testOutput = torch.sigmoid(5*uModel(testImage))[0][0].to("cpu").detach().numpy()
+	## Total number of images
+	imTot = len(imPaths)
 
-	## Create subplots
-	fig1, ax1 = plt.subplots()
-	fig2, ax2 = plt.subplots()
-	fig3, ax3 = plt.subplots()
+	## For every image path
+	for i, imPath in enumerate(imPaths):
 
-	## Crop outut image to plot overlaid
-	testImage = cropTen(testOutput, testImage[0][0].to("cpu").detach().numpy())
+		## Start time
+		startTime = datetime.now()
 
-	## Mask the output image
-	masked = np.ma.masked_where(testOutput == 1, testOutput)
+		## Load image as tensor
+		testImage = image_loader(imPath, loader, device)
+		#testImage = grey2rgb_image_loader("./testImages/r3_1000.tif")
+		#testOutput = model(testImage)[0][0].to("cpu").detach().numpy()
 
-	a = ax1.imshow(testImage, 'gray')
-	b = ax2.imshow(testOutput)
-	ax3.imshow(testImage)
-	ax3.imshow(testOutput, interpolation='none', alpha=0.7)
-	plt.colorbar(b)
+		## Run model on image and get output as numpy array
+		rawOut = model(testImage)
+
+		## End time
+		endTime = datetime.now()
+
+		## Delta time
+		deltaTime = endTime - startTime
+
+		## Convert delta time to seconds
+		deltaTime = deltaTime.seconds + (1e-3)*deltaTime.microseconds
+
+		## Display message
+		message = 'image ' + str(i+1) + '/' + str(imTot) + ': ' + str(imPath) + ' ' + str(imSize) + 'x' + str(imSize) + ', Done. (' + str(deltaTime) + 's)'
+		print(message)
+
+		## Get numpy array from output tensor
+		outRay = rawOut[0][0].to("cpu").detach().numpy()
+
+		## Path to output image
+		pathOutIm = expPath + imPath.split('\\')[-1]
+
+		## Path to output label
+		pathOutLabel = expPath + 'labels/' + imPath.split('\\')[-1].split('.')[-2] + '.txt'
+
+		## Rescale image dynamics for PIL
+		im = (((outRay - outRay.min())/(outRay.max() - outRay.min()))*255).astype(np.uint8)
+
+		## Convert to PIL image
+		im = Image.fromarray(im)
+
+		## Save PIL image to output
+		im.save(pathOutIm)
+
+		## Save numpy array as label txt
+		np.savetxt(pathOutLabel, outRay)
+
+		# testOutput = torch.sigmoid(5*rawOut)[0][0].to("cpu").detach().numpy()
+
+		# ## Create subplots
+		# fig, axs = plt.subplots(1, 3)
+
+		# ## Crop outut image to plot overlaid
+		# testImage = cropTen(testOutput, testImage[0][0].to("cpu").detach().numpy())
+
+		# ## Mask the output image
+		# masked = np.ma.masked_where(testOutput == 1, testOutput)
+
+		# axs[0].imshow(testImage, 'gray')
+
+		# axs[1].imshow(testOutput)
+
+		# axs[2].imshow(testImage)
+		# b = axs[2].imshow(testOutput, interpolation='none', alpha=0.7)
+		# plt.colorbar(b)
+		# plt.show()
 
 
-	plt.show()
+
+### Main functioning of script
+def main(args):
+
+	## Path to trained model
+	weightPath = args.w
+
+	## Path to weights
+	imDir = args.src
+
+	## Check model in arguments
+	if args.model == 'UNet':
+
+		## Instantiate UNet model
+		model = UNet()
+
+	elif args.model == 'UNet_small':
+
+		## Instantiate UNet model
+		model = UNet_small()
+
+	else:
+
+		## No model found
+		print('\nModel ' + args.model + ' not found. Aborting.')
+		return
+
+	## Run detection on folder
+	detect_folder(weightPath, imDir, model)
+
+
+
+### Main functioning of script
+if __name__ == '__main__':
+
+	## Call new argument parser
+	parser = argparse.ArgumentParser()
+
+	## Add weights argument
+	parser.add_argument('--w', action='store', nargs='?', type=str, default='runs/train/exp1/weights/best.pth', help='Path to model trained weights (.pth).')
+
+	## Add image directory argument
+	parser.add_argument('--src', action='store', nargs='?', type=str, default='data/testImages/', help='Path to directory containing images for detection.')
+
+	## Add model argument
+	parser.add_argument('--model', action='store', nargs='?', type=str, default='UNet_small', help='Choose model to use (must match weights).')
+
+	## Parse all arguments
+	args = parser.parse_args()
+
+	## Call main with arguments
+	main(args)

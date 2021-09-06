@@ -69,6 +69,9 @@ class UNet_small(nn.Module):
 		# Initialize parent object
 		super(UNet_small, self).__init__()
 
+		# Define input image dimensions
+		self.inputDims = 172
+
 		# Define maxpooling layer
 		self.max_pool_2x2 = nn.MaxPool2d(kernel_size = 2, stride = 2)
 
@@ -164,6 +167,9 @@ class UNet(nn.Module):
 
 		# Initialize parent object
 		super(UNet, self).__init__()
+
+		# Define input image dimensions
+		self.inputDims = 572
 
 		# Define max pool layers
 		self.max_pool_2x2 = nn.MaxPool2d(kernel_size = 2, stride = 2)
